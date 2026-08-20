@@ -241,3 +241,44 @@ The complete preset test run passed all 11 tests:
 ctest --preset vs2022-debug
 100% tests passed, 0 tests failed out of 11
 ```
+
+## Experiment 09: shared immediate context and ID3D11Multithread protection
+
+Target: `exp09_d3d11_multithread_context`
+
+This experiment creates one D3D11 device and deliberately shares its single
+immediate context between several CPU worker threads. Each worker repeatedly
+records `UpdateSubresource` and `Flush` commands for its own texture, after
+which the main thread validates the final per-pixel signature.
+
+The experiment compares:
+
+- `ID3D11Multithread::SetMultithreadProtected(TRUE)`: correctness baseline;
+- `SetMultithreadProtected(FALSE)`: observation only, recording worker
+  failures and final-texture mismatches without treating completion as proof
+  that concurrent immediate-context use is supported.
+
+```powershell
+& .\out\build\vs2022-x64\experiments\09_d3d11_multithread_context\Debug\exp09_d3d11_multithread_context.exe --workers 4 --iterations 100
+```
+
+Observed on 2026-08-21 with an NVIDIA GeForce RTX 4070 Ti, using four worker
+threads and 100 iterations per worker with the Debug configuration generated
+by the checked-in `vs2022-x64` preset:
+
+- `SetMultithreadProtected(TRUE)`: 400/400 `UpdateSubresource` + `Flush`
+  operations completed and all 4 final textures matched;
+- `SetMultithreadProtected(FALSE)`: 400/400 operations completed and all 4
+  final textures matched;
+- no worker failure or validation mismatch was observed in this run.
+
+The unprotected result is an observation for this driver and workload only;
+it does not establish that concurrent access to an immediate context is
+portable or supported without `ID3D11Multithread` protection.
+
+The complete preset test run passed all 13 tests:
+
+```text
+ctest --preset vs2022-debug
+100% tests passed, 0 tests failed out of 13
+```
