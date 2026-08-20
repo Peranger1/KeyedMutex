@@ -1,5 +1,7 @@
 # IDXGIKeyedMutex experiments
 
+[中文 README](README.zh-CN.md)
+
 This repository contains small, independently buildable D3D11 experiments for
 studying `IDXGIKeyedMutex`. Each experiment is one executable target and one
 CTest test.
