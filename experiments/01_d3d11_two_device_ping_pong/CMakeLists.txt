@@ -6,9 +6,7 @@ add_executable(
 target_link_libraries(
   exp01_d3d11_two_device_ping_pong
   PRIVATE
-    keyed_mutex_project_options
-    d3d11
-    dxgi
+    keyed_mutex_d3d11_test_support
 )
 
 if(BUILD_TESTING)
@@ -22,4 +20,3 @@ if(BUILD_TESTING)
       TIMEOUT 30
   )
 endif()
-

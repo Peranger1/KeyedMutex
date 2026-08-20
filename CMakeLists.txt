@@ -29,5 +29,22 @@ if(MSVC)
   )
 endif()
 
-add_subdirectory(experiments/01_d3d11_two_device_ping_pong)
+add_library(
+  keyed_mutex_d3d11_test_support
+  src/d3d11_test_support.cpp
+)
+target_include_directories(
+  keyed_mutex_d3d11_test_support
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+  keyed_mutex_d3d11_test_support
+  PUBLIC
+    keyed_mutex_project_options
+    d3d11
+    dxgi
+)
 
+add_subdirectory(experiments/01_d3d11_two_device_ping_pong)
+add_subdirectory(experiments/02_d3d11_key_state_machine)
