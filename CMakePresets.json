@@ -1,0 +1,66 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2022-x64",
+      "displayName": "Visual Studio 2022 x64",
+      "description": "Configure all D3D11 keyed-mutex experiments with the local VS 2022 Community installation.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/out/build/vs2022-x64",
+      "cacheVariables": {
+        "CMAKE_GENERATOR_INSTANCE": "D:/CodePrograms/Microsoft Visual Studio/2022/Community",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "OFF",
+        "BUILD_TESTING": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "vs2022-debug",
+      "displayName": "Build VS 2022 Debug",
+      "configurePreset": "vs2022-x64",
+      "configuration": "Debug",
+      "jobs": 0
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "Build VS 2022 Release",
+      "configurePreset": "vs2022-x64",
+      "configuration": "Release",
+      "jobs": 0
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "vs2022-debug",
+      "displayName": "Test VS 2022 Debug",
+      "configurePreset": "vs2022-x64",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "Test VS 2022 Release",
+      "configurePreset": "vs2022-x64",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}
+
