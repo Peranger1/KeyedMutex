@@ -1,5 +1,7 @@
 #include "keyed_mutex/d3d11_test_support.hpp"
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <atomic>
 #include <barrier>
@@ -44,6 +46,8 @@ struct Options {
   DWORD timeoutMs = 5'000;
   bool requestDebugLayer = true;
 };
+
+Options gOptions;
 
 [[nodiscard]] std::optional<std::uint32_t> ParseUint(std::string_view value) {
   std::uint32_t result = 0;
@@ -293,7 +297,7 @@ void PrintStats(std::string_view name, const WaitStats& stats) {
             << '\n';
 }
 
-int Run(const Options& options) {
+void RunExperiment(const Options& options) {
   const auto adapter = SelectHardwareAdapter();
   const auto deviceA = CreateDevice(adapter.Get(), options.requestDebugLayer);
   const auto deviceB = CreateDevice(adapter.Get(), options.requestDebugLayer);
@@ -418,8 +422,7 @@ int Run(const Options& options) {
       std::chrono::steady_clock::now() - start);
   if (failure.failed.load()) {
     std::scoped_lock lock(failure.messageMutex);
-    std::cerr << "FAIL: " << failure.message << '\n';
-    return 1;
+    FAIL() << failure.message;
   }
 
   std::cout << "PASS: completed " << options.iterations
@@ -435,16 +438,19 @@ int Run(const Options& options) {
                     ? "all enabled"
                     : "one or more disabled")
             << '\n';
-  return 0;
 }
+
+TEST(D3D11KeyedMutex, ThreeDeviceRing) { RunExperiment(gOptions); }
 
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  ::testing::InitGoogleTest(&argc, argv);
   try {
-    return Run(ParseOptions(std::span(argv, static_cast<std::size_t>(argc))));
+    gOptions = ParseOptions(std::span(argv, static_cast<std::size_t>(argc)));
   } catch (const std::exception& exception) {
     std::cerr << "ERROR: " << exception.what() << '\n';
     return 2;
   }
+  return RUN_ALL_TESTS();
 }

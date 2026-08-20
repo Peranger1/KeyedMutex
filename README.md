@@ -9,6 +9,7 @@ CTest test.
 - Windows 8 or newer
 - Visual Studio 2022 with the Desktop development with C++ workload
 - CMake 3.25 or newer
+- Git submodules initialized (`third_party/googletest`, pinned to v1.18.0)
 
 The checked-in preset selects the Visual Studio installation at:
 
@@ -19,10 +20,16 @@ D:\CodePrograms\Microsoft Visual Studio\2022\Community
 ## Configure, build, and validate
 
 ```powershell
+git submodule update --init --recursive
 cmake --preset vs2022-x64
 cmake --build --preset vs2022-debug
 ctest --preset vs2022-debug
 ```
+
+GoogleTest is built from the checked-in submodule, so configuring and building
+the project does not download test dependencies. Each experiment remains a
+separate executable target. Its research assertions are GoogleTest assertions,
+and CMake's `gtest_discover_tests` exposes the individual cases to CTest.
 
 To run the first experiment directly with a longer stress pass:
 

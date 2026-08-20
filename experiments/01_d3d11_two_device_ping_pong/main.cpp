@@ -1,5 +1,7 @@
 #include "keyed_mutex/d3d11_test_support.hpp"
 
+#include <gtest/gtest.h>
+
 #include <atomic>
 #include <charconv>
 #include <chrono>
@@ -37,6 +39,8 @@ struct Options {
   DWORD timeoutMs = 5'000;
   bool requestDebugLayer = true;
 };
+
+Options gOptions;
 
 [[nodiscard]] std::optional<std::uint32_t> ParseUint(std::string_view value) {
   std::uint32_t result = 0;
@@ -151,7 +155,7 @@ struct SharedExperimentState {
   }
 };
 
-int Run(const Options& options) {
+void RunExperiment(const Options& options) {
   const auto adapter = SelectHardwareAdapter();
   auto producer = CreateDevice(adapter.Get(), options.requestDebugLayer);
   auto consumer = CreateDevice(adapter.Get(), options.requestDebugLayer);
@@ -264,8 +268,7 @@ int Run(const Options& options) {
 
   if (state.failed.load()) {
     std::scoped_lock lock(state.failureMutex);
-    std::cerr << "FAIL: " << state.failureMessage << '\n';
-    return 1;
+    FAIL() << state.failureMessage;
   }
 
   std::cout << "PASS: transferred and verified " << options.iterations
@@ -275,16 +278,19 @@ int Run(const Options& options) {
             << (producer.debugLayerEnabled ? "enabled" : "disabled") << '\n'
             << "      consumer debug layer: "
             << (consumer.debugLayerEnabled ? "enabled" : "disabled") << '\n';
-  return 0;
 }
+
+TEST(D3D11KeyedMutex, TwoDevicePingPong) { RunExperiment(gOptions); }
 
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  ::testing::InitGoogleTest(&argc, argv);
   try {
-    return Run(ParseOptions(std::span(argv, static_cast<std::size_t>(argc))));
+    gOptions = ParseOptions(std::span(argv, static_cast<std::size_t>(argc)));
   } catch (const std::exception& exception) {
     std::cerr << "ERROR: " << exception.what() << '\n';
     return 2;
   }
+  return RUN_ALL_TESTS();
 }

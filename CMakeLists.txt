@@ -46,6 +46,12 @@ target_link_libraries(
     dxgi
 )
 
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(third_party/googletest EXCLUDE_FROM_ALL)
+include(GoogleTest)
+
 add_subdirectory(experiments/01_d3d11_two_device_ping_pong)
 add_subdirectory(experiments/02_d3d11_key_state_machine)
 add_subdirectory(experiments/03_d3d11_three_device_ring)

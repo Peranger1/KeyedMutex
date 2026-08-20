@@ -7,15 +7,16 @@ target_link_libraries(
   exp01_d3d11_two_device_ping_pong
   PRIVATE
     keyed_mutex_d3d11_test_support
+    GTest::gtest
 )
 
 if(BUILD_TESTING)
-  add_test(
-    NAME exp01.d3d11_two_device_ping_pong
-    COMMAND exp01_d3d11_two_device_ping_pong --iterations 250 --timeout-ms 5000
-  )
-  set_tests_properties(
-    exp01.d3d11_two_device_ping_pong
+  gtest_discover_tests(
+    exp01_d3d11_two_device_ping_pong
+    TEST_PREFIX "exp01."
+    EXTRA_ARGS --iterations 250 --timeout-ms 5000
+    DISCOVERY_MODE PRE_TEST
+    DISCOVERY_TIMEOUT 30
     PROPERTIES
       TIMEOUT 30
   )

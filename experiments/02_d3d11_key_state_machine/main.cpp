@@ -1,5 +1,7 @@
 #include "keyed_mutex/d3d11_test_support.hpp"
 
+#include <gtest/gtest.h>
+
 #include <charconv>
 #include <cstdint>
 #include <exception>
@@ -22,6 +24,8 @@ struct Options {
   DWORD timeoutMs = 25;
   bool requestDebugLayer = true;
 };
+
+Options gOptions;
 
 [[nodiscard]] std::optional<std::uint32_t> ParseUint(std::string_view value) {
   std::uint32_t result = 0;
@@ -56,69 +60,7 @@ struct Options {
   return options;
 }
 
-class Checks {
-public:
-  void ExpectHr(std::string_view name, HRESULT actual, HRESULT expected) {
-    ++total_;
-    if (actual == expected) {
-      std::cout << "  PASS  " << name << " -> " << HResultText(actual)
-                << '\n';
-      return;
-    }
-
-    ++failed_;
-    std::cerr << "  FAIL  " << name << " -> expected "
-              << HResultText(expected) << ", got " << HResultText(actual)
-              << '\n';
-  }
-
-  void ExpectTrue(std::string_view name, bool actual) {
-    ++total_;
-    if (actual) {
-      std::cout << "  PASS  " << name << '\n';
-      return;
-    }
-
-    ++failed_;
-    std::cerr << "  FAIL  " << name << '\n';
-  }
-
-  void ExpectFailure(std::string_view name,
-                     HRESULT actual,
-                     HRESULT documentedCode) {
-    ++total_;
-    if (FAILED(actual)) {
-      std::cout << "  PASS  " << name << " -> " << HResultText(actual)
-                << '\n';
-      if (actual != documentedCode) {
-        std::cout << "        NOTE: documentation names "
-                  << HResultText(documentedCode)
-                  << ", but this runtime returned a different failure code\n";
-      }
-      return;
-    }
-
-    ++failed_;
-    std::cerr << "  FAIL  " << name << " -> expected a failing HRESULT, got "
-              << HResultText(actual) << '\n';
-  }
-
-  [[nodiscard]] int Finish() const {
-    if (failed_ != 0) {
-      std::cerr << "FAIL: " << failed_ << " of " << total_
-                << " checks failed\n";
-      return 1;
-    }
-    std::cout << "PASS: all " << total_ << " checks passed\n";
-    return 0;
-  }
-
-private:
-  unsigned total_ = 0;
-  unsigned failed_ = 0;
-};
-
-int Run(const Options& options) {
+void RunExperiment(const Options& options) {
   const auto adapter = SelectHardwareAdapter();
   const auto owner = CreateDevice(adapter.Get(), options.requestDebugLayer);
   const auto opener = CreateDevice(adapter.Get(), options.requestDebugLayer);
@@ -142,56 +84,72 @@ int Run(const Options& options) {
   std::cout << "D3D11 keyed-mutex key state machine on "
             << AdapterName(adapter.Get()) << '\n';
 
-  Checks checks;
-
   const HRESULT initialWrongKey =
       shared.openedMutex->AcquireSync(7, options.timeoutMs);
-  checks.ExpectHr("initial AcquireSync(7) times out",
-                  initialWrongKey,
-                  timeout);
-  checks.ExpectTrue("SUCCEEDED(WAIT_TIMEOUT) is true; explicit comparison is required",
-                    SUCCEEDED(initialWrongKey));
+  EXPECT_EQ(initialWrongKey, timeout)
+      << "initial AcquireSync(7): " << HResultText(initialWrongKey);
+  EXPECT_TRUE(SUCCEEDED(initialWrongKey))
+      << "WAIT_TIMEOUT must be checked explicitly instead of with SUCCEEDED";
 
-  checks.ExpectHr("initial AcquireSync(0) succeeds",
-                  shared.ownerMutex->AcquireSync(0, options.timeoutMs),
-                  S_OK);
-  checks.ExpectHr("AcquireSync(1) while another device owns the resource times out",
-                  shared.openedMutex->AcquireSync(1, options.timeoutMs),
-                  timeout);
-  checks.ExpectHr("owner ReleaseSync(42) succeeds",
-                  shared.ownerMutex->ReleaseSync(42),
-                  S_OK);
+  const HRESULT initialAcquire =
+      shared.ownerMutex->AcquireSync(0, options.timeoutMs);
+  ASSERT_EQ(initialAcquire, S_OK)
+      << "initial AcquireSync(0): " << HResultText(initialAcquire);
 
-  checks.ExpectHr("post-release AcquireSync(1) uses the wrong key and times out",
-                  shared.openedMutex->AcquireSync(1, options.timeoutMs),
-                  timeout);
-  checks.ExpectHr("post-release AcquireSync(42) succeeds",
-                  shared.openedMutex->AcquireSync(42, options.timeoutMs),
-                  S_OK);
-  checks.ExpectFailure("non-owner ReleaseSync(0) fails",
-                       shared.ownerMutex->ReleaseSync(0),
-                       E_FAIL);
-  checks.ExpectHr("current owner ReleaseSync(0) succeeds",
-                  shared.openedMutex->ReleaseSync(0),
-                  S_OK);
+  const HRESULT whileOwned =
+      shared.openedMutex->AcquireSync(1, options.timeoutMs);
+  EXPECT_EQ(whileOwned, timeout)
+      << "AcquireSync(1) while owned: " << HResultText(whileOwned);
 
-  checks.ExpectHr("original device can reacquire key 0",
-                  shared.ownerMutex->AcquireSync(0, options.timeoutMs),
-                  S_OK);
-  checks.ExpectHr("final ReleaseSync(0) succeeds",
-                  shared.ownerMutex->ReleaseSync(0),
-                  S_OK);
+  const HRESULT release42 = shared.ownerMutex->ReleaseSync(42);
+  ASSERT_EQ(release42, S_OK)
+      << "owner ReleaseSync(42): " << HResultText(release42);
 
-  return checks.Finish();
+  const HRESULT wrongReleasedKey =
+      shared.openedMutex->AcquireSync(1, options.timeoutMs);
+  EXPECT_EQ(wrongReleasedKey, timeout)
+      << "post-release AcquireSync(1): " << HResultText(wrongReleasedKey);
+
+  const HRESULT acquire42 =
+      shared.openedMutex->AcquireSync(42, options.timeoutMs);
+  ASSERT_EQ(acquire42, S_OK)
+      << "post-release AcquireSync(42): " << HResultText(acquire42);
+
+  const HRESULT nonOwnerRelease = shared.ownerMutex->ReleaseSync(0);
+  EXPECT_TRUE(FAILED(nonOwnerRelease))
+      << "non-owner ReleaseSync(0) unexpectedly succeeded";
+  if (nonOwnerRelease != E_FAIL) {
+    std::cout << "NOTE: documentation names " << HResultText(E_FAIL)
+              << ", but this runtime returned "
+              << HResultText(nonOwnerRelease) << '\n';
+  }
+
+  const HRESULT currentOwnerRelease = shared.openedMutex->ReleaseSync(0);
+  ASSERT_EQ(currentOwnerRelease, S_OK)
+      << "current owner ReleaseSync(0): "
+      << HResultText(currentOwnerRelease);
+
+  const HRESULT reacquire0 =
+      shared.ownerMutex->AcquireSync(0, options.timeoutMs);
+  ASSERT_EQ(reacquire0, S_OK)
+      << "original device AcquireSync(0): " << HResultText(reacquire0);
+
+  const HRESULT finalRelease = shared.ownerMutex->ReleaseSync(0);
+  EXPECT_EQ(finalRelease, S_OK)
+      << "final ReleaseSync(0): " << HResultText(finalRelease);
 }
+
+TEST(D3D11KeyedMutex, KeyStateMachine) { RunExperiment(gOptions); }
 
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  ::testing::InitGoogleTest(&argc, argv);
   try {
-    return Run(ParseOptions(std::span(argv, static_cast<std::size_t>(argc))));
+    gOptions = ParseOptions(std::span(argv, static_cast<std::size_t>(argc)));
   } catch (const std::exception& exception) {
     std::cerr << "ERROR: " << exception.what() << '\n';
     return 2;
   }
+  return RUN_ALL_TESTS();
 }
