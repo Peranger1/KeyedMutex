@@ -136,3 +136,26 @@ then discards them, creates a fresh shared texture, and verifies a complete
 ```powershell
 & .\out\build\vs2022-x64\experiments\05_d3d11_owner_abandonment\Debug\exp05_d3d11_owner_abandonment.exe --iterations 10
 ```
+
+## Experiment 06: cross-process ping-pong
+
+Target: `exp06_d3d11_cross_process_ping_pong`
+
+The parent creates an inheritable NT shared handle and launches a child copy of
+the executable on the exact same hardware adapter. Each process owns its own
+D3D11 device and immediate context. They coordinate exclusively through the
+shared texture's keyed mutex:
+
+```text
+parent: AcquireSync(0) -> verify child -> write parent -> Flush -> ReleaseSync(1)
+child:  AcquireSync(1) -> verify parent -> write child  -> Flush -> ReleaseSync(0)
+```
+
+Both sides copy the shared texture to a local staging texture and verify a
+deterministic per-pixel signature. The parent also checks that the child exits
+normally, so a timeout, failed handoff, or validation error in either process
+fails the GoogleTest case.
+
+```powershell
+& .\out\build\vs2022-x64\experiments\06_d3d11_cross_process_ping_pong\Debug\exp06_d3d11_cross_process_ping_pong.exe --iterations 1000
+```

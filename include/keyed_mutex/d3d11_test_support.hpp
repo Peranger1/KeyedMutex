@@ -63,6 +63,7 @@ void ThrowIfFailed(HRESULT hr, std::string_view operation);
 [[nodiscard]] DeviceBundle CreateDevice(IDXGIAdapter1* adapter,
                                         bool requestDebugLayer);
 [[nodiscard]] ComPtr<IDXGIAdapter1> SelectHardwareAdapter();
+[[nodiscard]] ComPtr<IDXGIAdapter1> SelectHardwareAdapterByLuid(LUID luid);
 [[nodiscard]] std::string AdapterName(IDXGIAdapter1* adapter);
 [[nodiscard]] SharedTextureOwner CreateSharedTextureOwner(
     const DeviceBundle& owner,

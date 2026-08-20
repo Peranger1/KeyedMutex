@@ -149,6 +149,31 @@ ComPtr<IDXGIAdapter1> SelectHardwareAdapter() {
   throw std::runtime_error("no hardware DXGI adapter was found");
 }
 
+ComPtr<IDXGIAdapter1> SelectHardwareAdapterByLuid(LUID luid) {
+  ComPtr<IDXGIFactory1> factory;
+  ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)),
+                "CreateDXGIFactory1");
+
+  for (UINT index = 0;; ++index) {
+    ComPtr<IDXGIAdapter1> adapter;
+    const HRESULT hr = factory->EnumAdapters1(index, &adapter);
+    if (hr == DXGI_ERROR_NOT_FOUND) {
+      break;
+    }
+    ThrowIfFailed(hr, "IDXGIFactory1::EnumAdapters1");
+
+    DXGI_ADAPTER_DESC1 description{};
+    ThrowIfFailed(adapter->GetDesc1(&description),
+                  "IDXGIAdapter1::GetDesc1");
+    if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
+        description.AdapterLuid.LowPart == luid.LowPart &&
+        description.AdapterLuid.HighPart == luid.HighPart) {
+      return adapter;
+    }
+  }
+  throw std::runtime_error("hardware DXGI adapter LUID was not found");
+}
+
 std::string AdapterName(IDXGIAdapter1* adapter) {
   DXGI_ADAPTER_DESC1 description{};
   ThrowIfFailed(adapter->GetDesc1(&description), "IDXGIAdapter1::GetDesc1");
