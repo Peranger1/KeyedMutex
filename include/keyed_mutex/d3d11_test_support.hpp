@@ -66,7 +66,8 @@ void ThrowIfFailed(HRESULT hr, std::string_view operation);
 [[nodiscard]] std::string AdapterName(IDXGIAdapter1* adapter);
 [[nodiscard]] SharedTextureOwner CreateSharedTextureOwner(
     const DeviceBundle& owner,
-    const D3D11_TEXTURE2D_DESC& description);
+    const D3D11_TEXTURE2D_DESC& description,
+    const SECURITY_ATTRIBUTES* securityAttributes = nullptr);
 [[nodiscard]] SharedTextureEndpoint OpenSharedTexture(
     const DeviceBundle& opener,
     HANDLE sharedHandle);

@@ -179,7 +179,8 @@ std::string AdapterName(IDXGIAdapter1* adapter) {
 
 SharedTextureOwner CreateSharedTextureOwner(
     const DeviceBundle& owner,
-    const D3D11_TEXTURE2D_DESC& description) {
+    const D3D11_TEXTURE2D_DESC& description,
+    const SECURITY_ATTRIBUTES* securityAttributes) {
   SharedTextureOwner result;
   ThrowIfFailed(owner.device->CreateTexture2D(
                     &description, nullptr, &result.endpoint.texture),
@@ -191,7 +192,7 @@ SharedTextureOwner CreateSharedTextureOwner(
 
   HANDLE rawSharedHandle = nullptr;
   ThrowIfFailed(dxgiResource->CreateSharedHandle(
-                    nullptr,
+                    securityAttributes,
                     DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE,
                     nullptr,
                     &rawSharedHandle),

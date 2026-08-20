@@ -119,3 +119,20 @@ assertion because wake order for equal-key waiters is undefined.
 ```powershell
 & .\out\build\vs2022-x64\experiments\04_d3d11_same_key_contention\Debug\exp04_d3d11_same_key_contention.exe --rounds 1000
 ```
+
+## Experiment 05: owner abandonment and recovery
+
+Target: `exp05_d3d11_owner_abandonment`
+
+The parent creates an inheritable NT shared handle and starts a child copy of
+the same executable. The child opens the D3D11 texture, acquires key `0`, then
+terminates itself without releasing the mutex or running COM destructors. The
+parent checks that its next `AcquireSync(0)` returns `WAIT_ABANDONED`.
+
+Because an abandoned keyed mutex and its surface are inconsistent, the test
+then discards them, creates a fresh shared texture, and verifies a complete
+`0 -> 9 -> 0` handoff between two healthy devices.
+
+```powershell
+& .\out\build\vs2022-x64\experiments\05_d3d11_owner_abandonment\Debug\exp05_d3d11_owner_abandonment.exe --iterations 10
+```
