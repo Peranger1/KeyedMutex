@@ -40,6 +40,16 @@ struct DeviceBundle {
   bool debugLayerEnabled = false;
 };
 
+struct SharedTextureEndpoint {
+  ComPtr<ID3D11Texture2D> texture;
+  ComPtr<IDXGIKeyedMutex> mutex;
+};
+
+struct SharedTextureOwner {
+  SharedTextureEndpoint endpoint;
+  UniqueHandle handle;
+};
+
 struct SharedTexturePair {
   ComPtr<ID3D11Texture2D> ownerTexture;
   ComPtr<ID3D11Texture2D> openedTexture;
@@ -54,6 +64,12 @@ void ThrowIfFailed(HRESULT hr, std::string_view operation);
                                         bool requestDebugLayer);
 [[nodiscard]] ComPtr<IDXGIAdapter1> SelectHardwareAdapter();
 [[nodiscard]] std::string AdapterName(IDXGIAdapter1* adapter);
+[[nodiscard]] SharedTextureOwner CreateSharedTextureOwner(
+    const DeviceBundle& owner,
+    const D3D11_TEXTURE2D_DESC& description);
+[[nodiscard]] SharedTextureEndpoint OpenSharedTexture(
+    const DeviceBundle& opener,
+    HANDLE sharedHandle);
 [[nodiscard]] SharedTexturePair CreateSharedTexturePair(
     const DeviceBundle& owner,
     const DeviceBundle& opener,

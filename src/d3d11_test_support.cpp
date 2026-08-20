@@ -177,17 +177,16 @@ std::string AdapterName(IDXGIAdapter1* adapter) {
   return result;
 }
 
-SharedTexturePair CreateSharedTexturePair(
+SharedTextureOwner CreateSharedTextureOwner(
     const DeviceBundle& owner,
-    const DeviceBundle& opener,
     const D3D11_TEXTURE2D_DESC& description) {
-  SharedTexturePair pair;
+  SharedTextureOwner result;
   ThrowIfFailed(owner.device->CreateTexture2D(
-                    &description, nullptr, &pair.ownerTexture),
+                    &description, nullptr, &result.endpoint.texture),
                 "owner ID3D11Device::CreateTexture2D(shared)");
 
   ComPtr<IDXGIResource1> dxgiResource;
-  ThrowIfFailed(pair.ownerTexture.As(&dxgiResource),
+  ThrowIfFailed(result.endpoint.texture.As(&dxgiResource),
                 "QueryInterface(IDXGIResource1)");
 
   HANDLE rawSharedHandle = nullptr;
@@ -197,15 +196,35 @@ SharedTexturePair CreateSharedTexturePair(
                     nullptr,
                     &rawSharedHandle),
                 "IDXGIResource1::CreateSharedHandle");
-  UniqueHandle sharedHandle(rawSharedHandle);
-
-  ThrowIfFailed(opener.device1->OpenSharedResource1(
-                    sharedHandle.get(), IID_PPV_ARGS(&pair.openedTexture)),
-                "opener ID3D11Device1::OpenSharedResource1");
-  ThrowIfFailed(pair.ownerTexture.As(&pair.ownerMutex),
+  result.handle.reset(rawSharedHandle);
+  ThrowIfFailed(result.endpoint.texture.As(&result.endpoint.mutex),
                 "owner QueryInterface(IDXGIKeyedMutex)");
-  ThrowIfFailed(pair.openedTexture.As(&pair.openedMutex),
+  return result;
+}
+
+SharedTextureEndpoint OpenSharedTexture(const DeviceBundle& opener,
+                                        HANDLE sharedHandle) {
+  SharedTextureEndpoint result;
+  ThrowIfFailed(opener.device1->OpenSharedResource1(
+                    sharedHandle, IID_PPV_ARGS(&result.texture)),
+                "opener ID3D11Device1::OpenSharedResource1");
+  ThrowIfFailed(result.texture.As(&result.mutex),
                 "opener QueryInterface(IDXGIKeyedMutex)");
+  return result;
+}
+
+SharedTexturePair CreateSharedTexturePair(
+    const DeviceBundle& owner,
+    const DeviceBundle& opener,
+    const D3D11_TEXTURE2D_DESC& description) {
+  auto sharedOwner = CreateSharedTextureOwner(owner, description);
+  auto opened = OpenSharedTexture(opener, sharedOwner.handle.get());
+
+  SharedTexturePair pair;
+  pair.ownerTexture = std::move(sharedOwner.endpoint.texture);
+  pair.ownerMutex = std::move(sharedOwner.endpoint.mutex);
+  pair.openedTexture = std::move(opened.texture);
+  pair.openedMutex = std::move(opened.mutex);
   return pair;
 }
 

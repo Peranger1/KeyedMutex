@@ -48,3 +48,4 @@ target_link_libraries(
 
 add_subdirectory(experiments/01_d3d11_two_device_ping_pong)
 add_subdirectory(experiments/02_d3d11_key_state_machine)
+add_subdirectory(experiments/03_d3d11_three_device_ring)

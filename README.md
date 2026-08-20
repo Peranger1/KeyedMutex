@@ -71,3 +71,26 @@ All potentially blocking calls use a finite timeout. Run it directly with:
 ```powershell
 & .\out\build\vs2022-x64\experiments\02_d3d11_key_state_machine\Debug\exp02_d3d11_key_state_machine.exe --timeout-ms 25
 ```
+
+## Experiment 03: three-device key ring
+
+Target: `exp03_d3d11_three_device_ring`
+
+Three D3D11 devices open the same NT-handle shared texture. Each device owns a
+separate immediate context and CPU thread. Ownership follows a deterministic
+ring:
+
+```text
+device A: AcquireSync(0) -> verify C -> write A -> Flush -> ReleaseSync(1)
+device B: AcquireSync(1) -> verify A -> write B -> Flush -> ReleaseSync(2)
+device C: AcquireSync(2) -> verify B -> write C -> Flush -> ReleaseSync(0)
+```
+
+Every handoff verifies a stage-specific, per-pixel frame signature. The
+experiment also reports average and maximum `AcquireSync` wait time for each
+participant. All three threads use finite timeouts and the executable fails on
+any timeout, unexpected HRESULT, or signature mismatch.
+
+```powershell
+& .\out\build\vs2022-x64\experiments\03_d3d11_three_device_ring\Debug\exp03_d3d11_three_device_ring.exe --iterations 1000
+```
