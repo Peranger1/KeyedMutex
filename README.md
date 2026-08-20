@@ -17,6 +17,31 @@ The checked-in preset selects the Visual Studio installation at:
 D:\CodePrograms\Microsoft Visual Studio\2022\Community
 ```
 
+## Test machine
+
+The results recorded in this README were obtained on 2026-08-21 from the
+following machine and toolchain:
+
+| Item | Value |
+| --- | --- |
+| Operating system | Windows 10 Pro 25H2, build 26200.9168 |
+| Processor | 12th Gen Intel(R) Core(TM) i9-12900KS (3.40 GHz) |
+| Memory | 32.0 GB RAM (31.7 GB available) |
+| System type | 64-bit operating system, x64-based processor |
+| GPU | NVIDIA GeForce RTX 4070 Ti |
+| NVIDIA driver | 591.86 |
+| Dedicated video memory reported by `nvidia-smi` | 12282 MiB |
+| Visual Studio / MSBuild | Visual Studio 2022, MSBuild 17.14.8 |
+| CMake | 3.30.5 |
+| Windows SDK selected by CMake | 10.0.26100.0 |
+| CMake target | Windows 10.0.26200, x64, Debug |
+
+These are single-machine observations. They do not establish that a behavior
+is guaranteed across other GPU vendors, driver versions, Windows builds,
+feature levels, resource descriptions, command workloads, or thread counts.
+In particular, a passing unprotected or no-`Flush` observation must not be
+read as a portable API guarantee.
+
 ## Configure, build, and validate
 
 ```powershell
