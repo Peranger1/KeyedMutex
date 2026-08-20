@@ -101,3 +101,21 @@ any timeout, unexpected HRESULT, or signature mismatch.
 ```powershell
 & .\out\build\vs2022-x64\experiments\03_d3d11_three_device_ring\Debug\exp03_d3d11_three_device_ring.exe --iterations 1000
 ```
+
+## Experiment 04: same-key contention
+
+Target: `exp04_d3d11_same_key_contention`
+
+One controller device owns key `0`, while three contender devices wait for the
+same key `1`. On every round, the controller releases key `1`; whichever
+contender wakes first writes its device id and round number into the shared
+texture, flushes, and releases key `0` back to the controller.
+
+The test asserts exclusive entry, the exact number of completed handoffs, and
+the GPU signature written by every winner. It reports each contender's win
+count and the longest same-winner streak, but deliberately makes no fairness
+assertion because wake order for equal-key waiters is undefined.
+
+```powershell
+& .\out\build\vs2022-x64\experiments\04_d3d11_same_key_contention\Debug\exp04_d3d11_same_key_contention.exe --rounds 1000
+```
